@@ -33,6 +33,8 @@ public class DmsImg extends TagSupport {
 		try {
 			Content con = hm.getContentByUUID(this.getUuid());
 			
+			String test = "hi";
+			
 			// Get last modification date
 			Calendar modDate = con.getNodeData("modificationDate").getDate();
 			Date modNow = new Date(modDate.getTimeInMillis());
