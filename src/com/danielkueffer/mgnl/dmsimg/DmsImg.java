@@ -10,6 +10,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Calendar;
+import java.util.Date;
 
 import javax.jcr.RepositoryException;
 
@@ -36,57 +38,83 @@ public class DmsImg extends TagSupport {
 		HierarchyManager hm = MgnlContext.getHierarchyManager("dms");
 		
 		try {
-			System.out.println("UUID : " + this.getUuid());
-			
 			Content con = hm.getContentByUUID(this.getUuid());
 			
+			// Get last modification date
+			Calendar modDate = con.getNodeData("modificationDate").getDate();
+			Date modNow = new Date(modDate.getTimeInMillis());
+			Long modTime = modNow.getTime();
+			
+			// Get last resize date
+			Calendar dmsImgCreated = con.getNodeData("dmsImgCreated").getDate();
+			
+			// Get file
 			File file = new File(con.getNodeData("document"));
-			
-			InputStream is = file.getStream();
-			
-			byte[] buffer = new byte[(int) file.getSize()];
 			
 			String filename = file.getFileName() + "." + file.getExtension();
 			
-			// request. in sriplet
 			String realPath = pageContext.getSession().getServletContext().getRealPath("/") + "docroot/";
 
 			String dir = realPath + "img";
 
-            java.io.File newDir = new java.io.File(dir);
+			java.io.File newDir = new java.io.File(dir);
 
-            if (! newDir.exists()) {
-                    newDir.mkdir();
-            }
-
-            String newFile = dir + "/" +filename;
-			
-			OutputStream os = null;
-			
-			try {
-				os = new FileOutputStream(newFile);
-			} 
-			catch (FileNotFoundException e1) {
-				e1.printStackTrace();
+			if (! newDir.exists()) {
+				newDir.mkdir();
 			}
+
+			String newFile = dir + "/" +filename;
+			
+			boolean createImg = false;
+			
+			// Check if image was created before and if modification date is newer
+			if (dmsImgCreated == null) {
+				createImg = true;
+			}
+			else {
+				Date dmsImgCreatedDate = new Date(dmsImgCreated.getTimeInMillis());
+				Long dmsImgCreatedTime = dmsImgCreatedDate.getTime();
 				
-			try {
-				int bytesRead;
-				while ((bytesRead = is.read(buffer)) != -1) {
-					os.write(buffer, 0, bytesRead);
+				if (dmsImgCreatedTime < modTime) {
+					createImg = true;
 				}
-				
-				System.out.println("Image saved to: " + dir);
-				
-				os.close();
-				is.close();
-				
-			} 
-			catch (IOException e) {
-				e.printStackTrace();
 			}
-				
 			
+			// Only write file if it not exists of the file was modified
+			if (! new java.io.File(newFile).exists() || createImg) {
+				
+				InputStream is = file.getStream();
+				
+				byte[] buffer = new byte[(int) file.getSize()];
+			
+				OutputStream os = null;
+				
+				try {
+					os = new FileOutputStream(newFile);
+				} 
+				catch (FileNotFoundException e1) {
+					e1.printStackTrace();
+				}
+					
+				try {
+					int bytesRead;
+					while ((bytesRead = is.read(buffer)) != -1) {
+						os.write(buffer, 0, bytesRead);
+					}
+					
+					System.out.println("Image saved to: " + dir);
+					
+					os.close();
+					is.close();
+					
+				} 
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				System.out.println("File exists");
+			}
 		} 
 		catch (RepositoryException e) {
 			e.printStackTrace();
