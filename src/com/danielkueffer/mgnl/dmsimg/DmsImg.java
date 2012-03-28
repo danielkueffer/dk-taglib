@@ -26,13 +26,6 @@ public class DmsImg extends TagSupport {
 	private String width;
 	private String height;
 	private String css;
-	
-	public DmsImg() {
-		this.resizeDmsImg();
-	}
-	
-	public void resizeDmsImg() {
-	}
 
 	public int doStartTag() throws JspException {
 		HierarchyManager hm = MgnlContext.getHierarchyManager("dms");
