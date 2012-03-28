@@ -5,6 +5,11 @@ import info.magnolia.cms.core.Content;
 import info.magnolia.cms.core.HierarchyManager;
 import info.magnolia.context.MgnlContext;
 
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -13,6 +18,8 @@ import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.Date;
 
+import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageInputStream;
 import javax.jcr.RepositoryException;
 
 import javax.servlet.jsp.JspException;
@@ -31,9 +38,10 @@ public class DmsImg extends TagSupport {
 		HierarchyManager hm = MgnlContext.getHierarchyManager("dms");
 		
 		try {
-			Content con = hm.getContentByUUID(this.getUuid());
 			
-			String test = "hi";
+			System.out.println("Height" + this.height);
+			
+			Content con = hm.getContentByUUID(this.getUuid());
 			
 			// Get last modification date
 			Calendar modDate = con.getNodeData("modificationDate").getDate();
@@ -79,6 +87,22 @@ public class DmsImg extends TagSupport {
 			if (! new java.io.File(newFile).exists() || createImg) {
 				
 				InputStream is = file.getStream();
+				BufferedImage resizedImage = null;
+				
+				try {
+					Image image = ImageIO.read(is);
+					
+					resizedImage = new BufferedImage(300, 200, BufferedImage.TYPE_INT_RGB); 
+					
+					Graphics2D g = resizedImage.createGraphics();
+					g.drawImage(image, 0, 0, null);
+					g.dispose();
+					
+				}
+				catch (IOException e2) {
+					e2.printStackTrace();
+				}
+				
 				
 				byte[] buffer = new byte[(int) file.getSize()];
 			
@@ -92,8 +116,12 @@ public class DmsImg extends TagSupport {
 				}
 					
 				try {
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					ImageIO.write(resizedImage, file.getExtension(), baos);
+					InputStream isImage = new ByteArrayInputStream(baos.toByteArray());
+					
 					int bytesRead;
-					while ((bytesRead = is.read(buffer)) != -1) {
+					while ((bytesRead = isImage.read(buffer)) != -1) {
 						os.write(buffer, 0, bytesRead);
 					}
 					
