@@ -102,10 +102,13 @@ public class DmsImg extends TagSupport {
 						os.write(buffer, 0, bytesRead);
 					}
 					
-					System.out.println("Image saved to: " + dir);
-					
 					os.close();
 					is.close();
+					
+					con.setNodeData("dmsImgCreated", Calendar.getInstance());
+					hm.save();
+					
+					System.out.println("Image saved to: " + dir);
 					
 				} 
 				catch (IOException e) {
