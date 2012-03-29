@@ -9,17 +9,17 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Transparency;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Iterator;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.FileImageOutputStream;
 import javax.jcr.RepositoryException;
 
 import javax.servlet.jsp.JspException;
@@ -33,6 +33,10 @@ public class DmsImg extends TagSupport {
 	private String width;
 	private String height;
 	private String css;
+	private String alt;
+	
+	private String newFile;
+	private String imgPath;
 
 	public int doStartTag() throws JspException {
 		HierarchyManager hm = MgnlContext.getHierarchyManager("dms");
@@ -89,7 +93,9 @@ public class DmsImg extends TagSupport {
 
 			String dir = realPath + "dmsimg/" + targetWidth + "x" + targetHeight;
 
-			String newFile = dir + "/" +filename;
+			this.newFile = dir + "/" + filename;
+			
+			this.imgPath = MgnlContext.getContextPath() + "/docroot/dmsimg/" + targetWidth + "x" + targetHeight + "/" + filename;
 			
 			boolean createImg = false;
 			
@@ -106,7 +112,7 @@ public class DmsImg extends TagSupport {
 				}
 			}
 			
-			// Only write file if it not exists of the file was modified
+			// Only write file if it not exists or the file was modified
 			if (! new java.io.File(newFile).exists() || createImg) {
 				
 				java.io.File newDir = new java.io.File(dir);
@@ -156,42 +162,34 @@ public class DmsImg extends TagSupport {
 					while (w != targetWidth || h != targetHeight);
 				}
 			
-				OutputStream os = null;
+				FileImageOutputStream fios = null;
 				
 				try {
-					os = new FileOutputStream(newFile);
-				} 
-				catch (FileNotFoundException e1) {
-					e1.printStackTrace();
-				}
-					
-				try {
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					ImageIO.write(bi, file.getExtension(), baos);
-					InputStream isImage = new ByteArrayInputStream(baos.toByteArray());
-					
-					byte[] buffer = new byte[(int) file.getSize()];
-					
-					int bytesRead;
-					while ((bytesRead = isImage.read(buffer)) != -1) {
-						os.write(buffer, 0, bytesRead);
-					}
-					
-					os.close();
-					is.close();
-					
-					con.setNodeData("dmsImgCreated", Calendar.getInstance());
-					hm.save();
-					
-					System.out.println("Image saved to: " + dir);
-					
+					fios = new FileImageOutputStream(new java.io.File(newFile));
 				} 
 				catch (IOException e) {
 					e.printStackTrace();
 				}
-			}
-			else {
-				System.out.println("File exists");
+				
+				Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName(file.getExtension());
+				ImageWriter writer = (ImageWriter)iter.next();
+				ImageWriteParam iwp = writer.getDefaultWriteParam();
+				iwp.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+				iwp.setCompressionQuality(1);
+				
+				writer.setOutput(fios);
+				IIOImage iioi = new IIOImage(bi, null, null);
+				try {
+					writer.write(null, iioi, iwp);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				writer.dispose();
+				
+				con.setNodeData("dmsImgCreated", Calendar.getInstance());
+				hm.save();
+				
+				System.out.println("dk-taglib: Image saved to " + this.imgPath);
 			}
 		} 
 		catch (RepositoryException e) {
@@ -200,7 +198,21 @@ public class DmsImg extends TagSupport {
 		
 		try {
 			JspWriter out = pageContext.getOut();
-			out.println(this.uuid + " saved");
+			
+			String imgCss = "";
+			
+			if (this.css != null) {
+				imgCss = this.css;
+			}
+			
+			String imgAlt = "";
+			
+			if (this.alt != null) {
+				imgAlt = this.alt;
+			}
+			
+			
+			out.println("<img src=\"" + this.imgPath + "\" class=\"" + imgCss + "\" alt=\"" + imgAlt + "\"/>");
 		}
 		catch (IOException e) {
 			e.printStackTrace();
@@ -239,5 +251,13 @@ public class DmsImg extends TagSupport {
 
 	public void setUuid(String uuid) {
 		this.uuid = uuid;
+	}
+
+	public String getAlt() {
+		return alt;
+	}
+
+	public void setAlt(String alt) {
+		this.alt = alt;
 	}
 }
