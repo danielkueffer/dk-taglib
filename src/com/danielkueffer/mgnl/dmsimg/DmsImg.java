@@ -6,7 +6,8 @@ import info.magnolia.cms.core.HierarchyManager;
 import info.magnolia.context.MgnlContext;
 
 import java.awt.Graphics2D;
-import java.awt.Image;
+import java.awt.RenderingHints;
+import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,7 +20,6 @@ import java.util.Calendar;
 import java.util.Date;
 
 import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageInputStream;
 import javax.jcr.RepositoryException;
 
 import javax.servlet.jsp.JspException;
@@ -39,8 +39,6 @@ public class DmsImg extends TagSupport {
 		
 		try {
 			
-			System.out.println("Height" + this.height);
-			
 			Content con = hm.getContentByUUID(this.getUuid());
 			
 			// Get last modification date
@@ -54,17 +52,42 @@ public class DmsImg extends TagSupport {
 			// Get file
 			File file = new File(con.getNodeData("document"));
 			
+			InputStream is = file.getStream();
+			BufferedImage bi = null;
+			try {
+				bi = ImageIO.read(is);
+			} 
+			catch (IOException e3) {
+				e3.printStackTrace();
+			}
+			
+			int w = bi.getWidth();
+			int h = bi.getHeight();
+			
+			int targetWidth, targetHeight;
+			
+			if (this.width != null && ! this.width.equals("") && (this.height == null || this.height.equals(""))) {
+				targetWidth = Integer.parseInt(this.width);
+				targetHeight = Math.round(targetWidth * ((float) h / w));
+			}
+			else if ((this.width == null || this.width.equals("")) && this.height != null && ! this.height.equals("")) {
+				targetHeight = Integer.parseInt(this.height);
+				targetWidth = Math.round(targetHeight * ((float) w / h));
+			}
+			else if (this.width != null && ! this.width.equals("") && this.height != null && ! this.height.equals("")) {
+				targetWidth = Integer.parseInt(this.width);
+				targetHeight = Integer.parseInt(this.height);
+			}
+			else {
+				targetWidth = w;
+				targetHeight = h;
+			}
+			
 			String filename = file.getFileName() + "." + file.getExtension();
 			
 			String realPath = pageContext.getSession().getServletContext().getRealPath("/") + "docroot/";
 
-			String dir = realPath + "img";
-
-			java.io.File newDir = new java.io.File(dir);
-
-			if (! newDir.exists()) {
-				newDir.mkdir();
-			}
+			String dir = realPath + "dmsimg/" + targetWidth + "x" + targetHeight;
 
 			String newFile = dir + "/" +filename;
 			
@@ -86,25 +109,52 @@ public class DmsImg extends TagSupport {
 			// Only write file if it not exists of the file was modified
 			if (! new java.io.File(newFile).exists() || createImg) {
 				
-				InputStream is = file.getStream();
-				BufferedImage resizedImage = null;
-				
-				try {
-					Image image = ImageIO.read(is);
-					
-					resizedImage = new BufferedImage(300, 200, BufferedImage.TYPE_INT_RGB); 
-					
-					Graphics2D g = resizedImage.createGraphics();
-					g.drawImage(image, 0, 0, null);
-					g.dispose();
-					
-				}
-				catch (IOException e2) {
-					e2.printStackTrace();
+				java.io.File newDir = new java.io.File(dir);
+
+				if (! newDir.exists()) {
+					newDir.mkdirs();
 				}
 				
+				int type = (bi.getTransparency() == Transparency.OPAQUE) ? 
+						BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
 				
-				byte[] buffer = new byte[(int) file.getSize()];
+				if (targetWidth > w || targetHeight > h) {
+					BufferedImage tmp = new BufferedImage(targetWidth, targetHeight, type);
+					Graphics2D g2 = tmp.createGraphics();
+					g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+					g2.drawImage(bi, 0, 0, targetWidth, targetHeight, null);
+					g2.dispose();
+
+					bi = tmp;
+				}
+				else {
+					do {
+						if (w > targetWidth) {
+							w/= 2;
+							if (w < targetWidth) {
+								w = targetWidth;
+							}
+						}
+						
+						if (h > targetHeight) {
+							h/= 2;
+							
+							if (h < targetHeight) {
+								h = targetHeight;
+							}
+						}
+						
+						BufferedImage tmp = new BufferedImage(w, h, type);
+						Graphics2D g2 = tmp.createGraphics();
+						g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+						g2.drawImage(bi, 0, 0, w, h, null);
+						g2.dispose();
+
+						bi = tmp;
+						
+					}
+					while (w != targetWidth || h != targetHeight);
+				}
 			
 				OutputStream os = null;
 				
@@ -117,8 +167,10 @@ public class DmsImg extends TagSupport {
 					
 				try {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					ImageIO.write(resizedImage, file.getExtension(), baos);
+					ImageIO.write(bi, file.getExtension(), baos);
 					InputStream isImage = new ByteArrayInputStream(baos.toByteArray());
+					
+					byte[] buffer = new byte[(int) file.getSize()];
 					
 					int bytesRead;
 					while ((bytesRead = isImage.read(buffer)) != -1) {
