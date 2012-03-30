@@ -174,8 +174,11 @@ public class DmsImg extends TagSupport {
 				Iterator<ImageWriter> iter = ImageIO.getImageWritersByFormatName(file.getExtension());
 				ImageWriter writer = (ImageWriter)iter.next();
 				ImageWriteParam iwp = writer.getDefaultWriteParam();
-				iwp.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-				iwp.setCompressionQuality(1);
+				
+				if (file.getExtension().toLowerCase().equals("jpg") || file.getExtension().toLowerCase().equals("jpeg")) {
+					iwp.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+					iwp.setCompressionQuality(1);
+				}
 				
 				writer.setOutput(fios);
 				IIOImage iioi = new IIOImage(bi, null, null);
