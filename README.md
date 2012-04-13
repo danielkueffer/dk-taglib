@@ -8,4 +8,19 @@ javac -classpath $home::apache-tomcat-6.0.32/lib/jsp-api.jar:$home::apache-tomca
 
 ## Jar packaging
 
-jar cvf dk-taglib-1.0.jar META-INF/ README com/
+jar cvf dk-taglib-1.0.jar META-INF/ README.md com/
+
+## Usage
+
+Place the jar under WEB-INF/lib and restart Magnolia.
+
+Include the taglib in the JSP file:
+xmlns:dk="http://www.danielkueffer.com/dk-taglib
+
+### Parameters
+
+* uuid (The uuid of a image in the dms)
+* width (The width)
+* height (The height)
+* css (CSS class)
+* alt (Image alt text)
