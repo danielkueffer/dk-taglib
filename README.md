@@ -15,6 +15,7 @@ jar cvf dk-taglib-1.0.jar META-INF/ README.md com/
 Place the jar under WEB-INF/lib and restart Magnolia.
 
 Include the taglib in the JSP file:
+
 	xmlns:dk="http://www.danielkueffer.com/dk-taglib
 
 ### Parameters
