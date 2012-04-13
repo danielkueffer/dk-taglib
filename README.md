@@ -28,21 +28,25 @@ Include the taglib in the JSP file:
 
 ### Example Magnolia Paragraph
 
-'<?xml version="1.0" encoding="UTF-8" ?>
-<jsp:root version="2.0" xmlns:jsp="http://java.sun.com/JSP/Page" 
-						xmlns:cms="cms-taglib"
-						xmlns:cmsu="cms-util-taglib"
-						xmlns:cmsfn="http://www.magnolia.info/tlds/cmsfn-taglib.tld"
-						xmlns:fn="http://java.sun.com/jsp/jstl/functions"
-						xmlns:fmt="urn:jsptld:http://java.sun.com/jsp/jstl/fmt" 
-						xmlns:c="http://java.sun.com/jsp/jstl/core"
-						xmlns:dk="http://www.danielkueffer.com/dk-taglib">
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<jsp:root version="2.0" xmlns:jsp="http://java.sun.com/JSP/Page" 
+							xmlns:cms="cms-taglib"
+							xmlns:cmsu="cms-util-taglib"
+							xmlns:cmsfn="http://www.magnolia.info/tlds/cmsfn-taglib.tld"
+							xmlns:fn="http://java.sun.com/jsp/jstl/functions"
+							xmlns:fmt="urn:jsptld:http://java.sun.com/jsp/jstl/fmt" 
+							xmlns:c="http://java.sun.com/jsp/jstl/core"
+							xmlns:dk="http://www.danielkueffer.com/dk-taglib">
+	
+			<div>
+				<cms:editBar editLabel="Edit" moveLabel="Move" deleteLabel="Delete"/>
+	
+					<cms:out nodeDataName="image" var="imgUuid"/>
+	
+					<dk:dmsimg uuid="${imgUuid}" width="500" height="" css="my-style" alt="my image"/>
+			</div>
+	</jsp:root>
+	
+## License
 
-		<div>
-			<cms:editBar editLabel="Edit" moveLabel="Move" deleteLabel="Delete"/>
-
-				<cms:out nodeDataName="image" var="imgUuid"/>
-
-				<dk:dmsimg uuid="${imgUuid}" width="500" height="" css="my-style" alt="my image"/>
-		</div>
-</jsp:root>'
+[MIT License](http://www.opensource.org/licenses/mit-license.php). See LICENSE.
